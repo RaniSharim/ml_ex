@@ -4,7 +4,8 @@ from sklearn.neighbors import LocalOutlierFactor
 
 print "Loading data"
 
-alldata = pd.read_csv("ElectionsData.csv", header=0, index_col=0)
+#alldata = pd.read_csv("ElectionsData.csv", header=0, index_col=0)
+alldata = pd.read_csv("ElectionsData.csv", header=0)
 
 #Fill gaps in Yearly_IncomeK using the mean ratio and the values in Avg_size_per_room
 print "Filling gaps"
@@ -15,8 +16,8 @@ alldata['Yearly_IncomeK_filled'] = alldata['Yearly_IncomeK']
 for index, row in alldata[alldata['Yearly_IncomeK_filled'].isnull()].iterrows():
     alldata.at[index, 'Yearly_IncomeK_filled'] = row['Avg_size_per_room'] * ratio_to_fill
 
-alldata = alldata.drop('Yearly_IncomeK_Avg_size_per_room_ratio', 1)
-alldata = alldata.drop('Avg_size_per_room', 1)
+alldata['Yearly_IncomeK'] = alldata['Yearly_IncomeK_filled']
+alldata = alldata.drop(['Yearly_IncomeK_Avg_size_per_room_ratio', 'Avg_size_per_room', 'Yearly_IncomeK_filled'], 1)
 
 alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'] = alldata['Garden_sqr_meter_per_person_in_residancy_area'] / alldata['Avg_monthly_expense_on_pets_or_plants']
 ratio_to_fill = alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'].mean()
@@ -24,16 +25,17 @@ alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'] = alldata['Garde
 for index, row in alldata[alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'].isnull()].iterrows():
     alldata.at[index, 'Garden_sqr_meter_per_person_in_residancy_area_filled'] = row['Avg_monthly_expense_on_pets_or_plants'] * ratio_to_fill
 
-alldata = alldata.drop('Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio', 1)
-alldata = alldata.drop('Avg_monthly_expense_on_pets_or_plants', 1)
+alldata['Garden_sqr_meter_per_person_in_residancy_area'] = alldata['Garden_sqr_meter_per_person_in_residancy_area_filled']
+alldata = alldata.drop(['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio','Avg_monthly_expense_on_pets_or_plants','Garden_sqr_meter_per_person_in_residancy_area_filled'], 1)
 
 # This the the breakdown of the attributes, to numberical vs categorical,
 # and those which seems class dependant distribution to those which aren't
-class_dependand_non_numerical = ['Will_only_vote_for_large_party',
+class_dependand_non_numerical = ['Will_vote_only_large_party',
                                  'Married',
                                  'Looking_at_poles_results',
                                  'Last_school_grades',
-                                 'Number_of_valued_Kneset_members']
+                                 'Number_of_valued_Kneset_members',
+                                 'Most_Important_Issue']
 
 non_class_dependand_non_numerical = ['Main_transportation',
                                      'Financial_agenda_matters',
@@ -50,10 +52,10 @@ class_dependand_numerical = ['AVG_lottary_expanses',
                              'Avg_Satisfaction_with_previous_vote',
                              'Garden_sqr_meter_per_person_in_residancy_area',
                              'Yearly_IncomeK',
-                             'Avg_monthly_expense_on_pets_or_plants',
+                             #'Avg_monthly_expense_on_pets_or_plants',
                              'Avg_monthly_household_cost',
                              'Phone_minutes_10_years',
-                             'Avg_size_per_room',
+                             #'Avg_size_per_room',
                              'Weighted_education_rank',
                              'Avg_monthly_income_all_years',
                              'Political_interest_Total_Score',
@@ -77,8 +79,8 @@ for key in non_class_dependand_numerical:
 
 #Fill gaps in  class dependand numerical attributes   using the median in the class Class (=Vote)
 for key in class_dependand_numerical:
-    median = alldata[(alldata.Vote == row['Vote'])][key].median()
     for index, row in alldata[alldata[key].isnull()].iterrows():
+        median = alldata[(alldata.Vote == row['Vote'])][key].median()
         alldata.at[index, key] = median
 
 #Fill gaps in non class dependand non-numerical attributes with the global mode
@@ -89,9 +91,11 @@ for key in non_class_dependand_non_numerical:
 
 #Fill gaps class dependant non numerical data using the mode in the class Class (=Vote)
 for key in class_dependand_non_numerical:
-    mode = alldata[(alldata.Vote == row['Vote'])][key].dropna().mode()[0]
     for index, row in alldata[alldata[key].isnull()].iterrows():
+        mode = alldata[(alldata.Vote == row['Vote'])][key].dropna().mode()[0]
         alldata.at[index, key] = mode
+
+#print alldata.isnull().values.any()
 
 print "Converting categorical values"
 
@@ -111,26 +115,28 @@ alldata = alldata.drop('Married', 1)
 alldata['Gender_int'] = alldata['Gender'].map( {'Male':1, 'Female':-1}).astype(int)
 alldata = alldata.drop('Gender', 1)
 
+#print alldata.isnull().values.any()
+
 # Split categorical attributes to categorical attributes, 1/0 per category
 for attr in (['Most_Important_Issue', 'Voting_Time', 'Age_group', 'Main_transportation', 'Occupation']):
     alldata[attr] = alldata[attr].astype("category")
     alldata[attr+'_int'] = alldata[attr].cat.rename_categories(range(alldata[attr].nunique())).astype(int)
     for i in range(alldata[attr+'_int'].nunique()):
         alldata[attr+"_"+str(i)] = alldata[attr+'_int'].map(lambda x: 1 if x == i else 0).astype(int)
-    alldata = alldata.drop('attr', 1)
+    alldata = alldata.drop(attr, 1)
     alldata = alldata.drop(attr+'_int', 1)
 
+#print alldata.dtypes
 print "Removing outliers"
 
 # Drop ouliers using k-nearst neightbores, assume we have 0.1% outliers (as is the default)
-outlier_factor = 0.1
+outlier_factor = 0.01
 number_of_outliers = len(alldata) * outlier_factor
-outlier_classifier = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
-prediction = outlier_classifier.fit(alldata.DataFrame.as_matrix)
-normal_data = prediction[number_of_outliers:]
-newdata = pd.DataFrame(normal_data)
-newdata.columns = alldata.columns
-alldata = newdata
+outlier_classifier = LocalOutlierFactor(n_neighbors=20, contamination=outlier_factor)
+prediction = outlier_classifier.fit_predict(alldata.drop('Vote',1), alldata.Vote.values)
+mask = pd.DataFrame(prediction)[0].map(lambda x: x==-1)
+alldata = alldata.mask(mask).dropna()
+print "new len: " + str(len(alldata))
 
 print "Scaling data"
 
@@ -169,9 +175,9 @@ zscore = ['Garden_sqr_meter_per_person_in_residancy_area',
           'Num_of_kids_born_last_10_years']
 
 for attr in zscore:
-    std = alldata[attr].std
-    mean = alldata[attr].mean
-    alldata[attr] = alldata[attr].map(lambda v: (v - mean)/std)
+    attr_std = alldata[attr].std()
+    attr_mean = alldata[attr].mean()
+    alldata[attr] = alldata[attr].map(lambda v: (v - attr_mean)/attr_std)
 
 from sklearn.feature_selection import SelectPercentile, f_classif, mutual_info_classif
 
@@ -185,34 +191,69 @@ selector = SelectPercentile(f_classif, percentile=60)
 selector.fit(data_X, data_Y)
 support = selector.get_support()
 f_classif_selected = []
-for i in range(0, len(support)):
-    if support[i]:
-        f_classif_selected.insert(data_without_votes.columns[i])
+f_classif_full = []
+
+for idx, col in enumerate(data_without_votes.columns):
+    if support[idx]:
+        f_classif_selected.append(col)
+    f_classif_full.append((col,selector.scores_[idx]))
+
+# print "column scores:"
+# print f_classif_full
+# print "selected:"
+# print f_classif_selected
 
 selector = SelectPercentile(mutual_info_classif, percentile=60)
 selector.fit(data_X, data_Y)
 support = selector.get_support()
+
 mutual_info_classif_selected = []
-for i in range(0, len(support)):
-    if support[i]:
-        mutual_info_classif_selected.insert(data_without_votes.columns[i])
+mutual_info_classif_full = []
+
+for idx, col in enumerate(data_without_votes.columns):
+    if support[idx]:
+        mutual_info_classif_selected.append(col)
+    mutual_info_classif_full.append((col,selector.scores_[idx]))
+
+# print "column scores:"
+# print mutual_info_classif_full
+# print "selected:"
+# print mutual_info_classif_selected
+
 
 print "Find features by Backward elimination"
-# This takes a huge amount of time
+#split to train, test, validation
+from sklearn.model_selection import train_test_split
+#probably want to remove this to train a full model
+train, test = train_test_split(alldata, test_size=0.9)
+data_X = train.drop(['Vote'], axis=1).values
+data_Y = train.Vote.values
+
+# This takes a huge amount of time on the full data
 from sklearn.feature_selection import RFECV
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
 svc = SVC(kernel="linear", C=1)
-rfecv = RFECV(estimator=svc, step=1, cv=3, scoring='accuracy', n_jobs=-1)
+rfecv = RFECV(estimator=svc, step=1, cv=3, scoring='accuracy')
 rfecv.fit(data_X, data_Y)
 support = selector.get_support()
+
 rfecv_selected = []
-for i in range(0, len(support)):
-    if support[i]:
-        rfecv_selected.insert(data_without_votes.columns[i])
+rfecv_full = []
+
+for idx, col in enumerate(data_without_votes.columns):
+    if support[idx]:
+        rfecv_selected.append(col)
+    rfecv_full.append((col,selector.scores_[idx]))
+
+# print "column scores:"
+# print rfecv_full
+# print "selected:"
+# print rfecv_selected
+
 
 #These are the features we want that we know that has potentiall some data
-selected_features = ['Will_only_vote_for_large_party_int',
+selected_features = ['Will_vote_only_large_party_int',
                      'Married_int',
                      'Looking_at_poles_results_int',
                      'Last_school_grades',
@@ -232,11 +273,11 @@ selected_features = ['Will_only_vote_for_large_party_int',
                      'Overall_happiness_score']
 
 for feature in rfecv_selected:
-    if ((feature in f_classif_selected || feature in mutual_info_classif_selected) && (feature not in selected_features)):
+    if ((feature in f_classif_selected or feature in mutual_info_classif_selected) and (feature not in selected_features)):
         selected_features.append(feature)
 
 #split to train, test, validation
-from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import train_test_split
 #20% to test 
 train, test = train_test_split(alldata, test_size=0.2)
 # ~20% validation
@@ -244,6 +285,6 @@ train, validation = train_test_split(train, test_size=0.25)
 
 #Write everything to file
 train.to_csv("train.csv")
-test.to_csv("train.csv")
-validation.to_csv("train.csv")
-pd.DataFrame(selected_features).to_csv("feature.csv")
+test.to_csv("test.csv")
+validation.to_csv("validation.csv")
+pd.DataFrame(selected_features).to_csv("feature.csv", index = False, header = False)
