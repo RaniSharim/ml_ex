@@ -236,8 +236,8 @@ from sklearn.preprocessing import MinMaxScaler
 svc = SVC(kernel="linear", C=1)
 rfecv = RFECV(estimator=svc, step=1, cv=3, scoring='accuracy')
 rfecv.fit(data_X, data_Y)
-support = selector.get_support()
-
+support = rfecv.get_support()
+# print support
 rfecv_selected = []
 rfecv_full = []
 
