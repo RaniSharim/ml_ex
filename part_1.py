@@ -252,11 +252,10 @@ print "Find features by Backward elimination"
 #split to train, test, validation
 from sklearn.model_selection import train_test_split
 #probably want to remove this to train a full model
-train, test = train_test_split(alldata, test_size=0.9)
-data_X = train.drop(['Vote'], axis=1).values
-data_Y = train.Vote.values
+# train, test = train_test_split(alldata, test_size=0.9)
+# data_X = train.drop(['Vote'], axis=1).values
+# data_Y = train.Vote.values
 
-# This takes a huge amount of time on the full data
 from sklearn.feature_selection import RFECV
 from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler
