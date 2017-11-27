@@ -1,32 +1,25 @@
 import numpy as np
 import pandas as pd
-from sklearn.neighbors import LocalOutlierFactor
+from sklearn.utils import shuffle
 
 print "Loading data"
 
 #alldata = pd.read_csv("ElectionsData.csv", header=0, index_col=0)
 alldata = pd.read_csv("ElectionsData.csv", header=0)
+alldata = shuffle(alldata)
 
-#Fill gaps in Yearly_IncomeK using the mean ratio and the values in Avg_size_per_room
-print "Filling gaps"
+train_idx = int(0.6 * len(alldata))
+test_idx = train_idx + int(0.2 * len(alldata))
 
-alldata['Yearly_IncomeK_Avg_size_per_room_ratio'] = alldata['Yearly_IncomeK'] / alldata['Avg_size_per_room']
-ratio_to_fill = alldata['Yearly_IncomeK_Avg_size_per_room_ratio'].mean()
-alldata['Yearly_IncomeK_filled'] = alldata['Yearly_IncomeK']
-for index, row in alldata[alldata['Yearly_IncomeK_filled'].isnull()].iterrows():
-    alldata.at[index, 'Yearly_IncomeK_filled'] = row['Avg_size_per_room'] * ratio_to_fill
+train_data = alldata[:train_idx]
+test_data = alldata[train_idx: test_idx]
+validation_data = alldata[test_idx:]
 
-alldata['Yearly_IncomeK'] = alldata['Yearly_IncomeK_filled']
-alldata = alldata.drop(['Yearly_IncomeK_Avg_size_per_room_ratio', 'Avg_size_per_room', 'Yearly_IncomeK_filled'], 1)
+#Write raw data to file
+train_data.to_csv("train_raw.csv")
+test_data.to_csv("test_raw.csv")
+validation_data.to_csv("validation_raw.csv")
 
-alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'] = alldata['Garden_sqr_meter_per_person_in_residancy_area'] / alldata['Avg_monthly_expense_on_pets_or_plants']
-ratio_to_fill = alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'].mean()
-alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'] = alldata['Garden_sqr_meter_per_person_in_residancy_area']
-for index, row in alldata[alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'].isnull()].iterrows():
-    alldata.at[index, 'Garden_sqr_meter_per_person_in_residancy_area_filled'] = row['Avg_monthly_expense_on_pets_or_plants'] * ratio_to_fill
-
-alldata['Garden_sqr_meter_per_person_in_residancy_area'] = alldata['Garden_sqr_meter_per_person_in_residancy_area_filled']
-alldata = alldata.drop(['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio','Avg_monthly_expense_on_pets_or_plants','Garden_sqr_meter_per_person_in_residancy_area_filled'], 1)
 
 # This the the breakdown of the attributes, to numberical vs categorical,
 # and those which seems class dependant distribution to those which aren't
@@ -70,6 +63,55 @@ non_class_dependand_numerical = ['Financial_balance_score_(0-1)',
                                  'Yearly_ExpensesK',
                                  '%Time_invested_in_work',
                                  '%_satisfaction_financial_policy']
+
+#print alldata.dtypes
+print "Removing outliers"
+
+# Drop ouliers values in non categorical data that is more then 3 std from the mean
+for key in non_class_dependand_numerical:
+    mean = alldata[key].mean()
+    std = alldata[key].std()
+    max_val = mean + 3 * std
+    min_val = mean - 3 * std
+    for index, row in alldata[alldata[key] > max_val].iterrows():
+        alldata.at[index, key] = np.nan
+    for index, row in alldata[alldata[key] < min_val].iterrows():
+        alldata.at[index, key] = np.nan
+
+for key in class_dependand_numerical:
+    for vote in alldata['Vote'].unique():
+        vote_data = alldata[(alldata.Vote == vote)][[key]]
+        mean = vote_data[key].mean()
+        std = vote_data[key].std()
+        max_val = mean + 3 * std
+        min_val = mean - 3 * std
+        for index, row in vote_data[vote_data[key] > max_val].iterrows():
+            vote_data.at[index, key] = np.nan
+        for index, row in vote_data[vote_data[key] < min_val].iterrows():
+            vote_data.at[index, key] = np.nan
+
+
+#Fill gaps in Yearly_IncomeK using the mean ratio and the values in Avg_size_per_room
+print "Filling gaps"
+
+alldata['Yearly_IncomeK_Avg_size_per_room_ratio'] = alldata['Yearly_IncomeK'] / alldata['Avg_size_per_room']
+ratio_to_fill = alldata['Yearly_IncomeK_Avg_size_per_room_ratio'].mean()
+alldata['Yearly_IncomeK_filled'] = alldata['Yearly_IncomeK']
+for index, row in alldata[alldata['Yearly_IncomeK_filled'].isnull()].iterrows():
+    alldata.at[index, 'Yearly_IncomeK_filled'] = row['Avg_size_per_room'] * ratio_to_fill
+
+alldata['Yearly_IncomeK'] = alldata['Yearly_IncomeK_filled']
+alldata = alldata.drop(['Yearly_IncomeK_Avg_size_per_room_ratio', 'Avg_size_per_room', 'Yearly_IncomeK_filled'], 1)
+
+alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'] = alldata['Garden_sqr_meter_per_person_in_residancy_area'] / alldata['Avg_monthly_expense_on_pets_or_plants']
+ratio_to_fill = alldata['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio'].mean()
+alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'] = alldata['Garden_sqr_meter_per_person_in_residancy_area']
+for index, row in alldata[alldata['Garden_sqr_meter_per_person_in_residancy_area_filled'].isnull()].iterrows():
+    alldata.at[index, 'Garden_sqr_meter_per_person_in_residancy_area_filled'] = row['Avg_monthly_expense_on_pets_or_plants'] * ratio_to_fill
+
+alldata['Garden_sqr_meter_per_person_in_residancy_area'] = alldata['Garden_sqr_meter_per_person_in_residancy_area_filled']
+alldata = alldata.drop(['Garden_sqr_meter_per_person_in_residancy_area_Avg_monthly_expense_on_pets_or_plants_ratio','Avg_monthly_expense_on_pets_or_plants','Garden_sqr_meter_per_person_in_residancy_area_filled'], 1)
+
 
 #Fill gaps in non class dependand numerical attributes with the global median
 for key in non_class_dependand_numerical:
@@ -115,28 +157,13 @@ alldata = alldata.drop('Married', 1)
 alldata['Gender_int'] = alldata['Gender'].map( {'Male':1, 'Female':-1}).astype(int)
 alldata = alldata.drop('Gender', 1)
 
-#print alldata.isnull().values.any()
-
-# Split categorical attributes to categorical attributes, 1/0 per category
+# map categorical values to numbers
 for attr in (['Most_Important_Issue', 'Voting_Time', 'Age_group', 'Main_transportation', 'Occupation']):
     alldata[attr] = alldata[attr].astype("category")
     alldata[attr+'_int'] = alldata[attr].cat.rename_categories(range(alldata[attr].nunique())).astype(int)
-    for i in range(alldata[attr+'_int'].nunique()):
-        alldata[attr+"_"+str(i)] = alldata[attr+'_int'].map(lambda x: 1 if x == i else 0).astype(int)
     alldata = alldata.drop(attr, 1)
-    alldata = alldata.drop(attr+'_int', 1)
 
-#print alldata.dtypes
-print "Removing outliers"
 
-# Drop ouliers using k-nearst neightbores, assume we have 0.1% outliers (as is the default)
-outlier_factor = 0.01
-number_of_outliers = len(alldata) * outlier_factor
-outlier_classifier = LocalOutlierFactor(n_neighbors=20, contamination=outlier_factor)
-prediction = outlier_classifier.fit_predict(alldata.drop('Vote',1), alldata.Vote.values)
-mask = pd.DataFrame(prediction)[0].map(lambda x: x==-1)
-alldata = alldata.mask(mask).dropna()
-print "new len: " + str(len(alldata))
 
 print "Scaling data"
 
@@ -276,15 +303,16 @@ for feature in rfecv_selected:
     if ((feature in f_classif_selected or feature in mutual_info_classif_selected) and (feature not in selected_features)):
         selected_features.append(feature)
 
-#split to train, test, validation
-#from sklearn.model_selection import train_test_split
-#20% to test 
-train, test = train_test_split(alldata, test_size=0.2)
-# ~20% validation
-train, validation = train_test_split(train, test_size=0.25)
+
+# Split categorical attributes to categorical attributes, 1/-1 per category
+for attr in (['Most_Important_Issue', 'Voting_Time', 'Age_group', 'Main_transportation', 'Occupation']):
+    for i in range(alldata[attr+'_int'].nunique()):
+        alldata[attr+"_"+str(i)] = alldata[attr+'_int'].map(lambda x: 1 if x == i else -1).astype(int)
+    alldata = alldata.drop(attr+'_int', 1)
+
 
 #Write everything to file
-train.to_csv("train.csv")
-test.to_csv("test.csv")
-validation.to_csv("validation.csv")
-pd.DataFrame(selected_features).to_csv("feature.csv", index = False, header = False)
+train_data.to_csv("train.csv")
+test_data.to_csv("test.csv")
+validation_data.to_csv("validation.csv")
+pd.DataFrame(selected_features).to_csv("features.csv", index = False, header = False)
