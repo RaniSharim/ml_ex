@@ -311,6 +311,10 @@ for attr in (['Most_Important_Issue', 'Voting_Time', 'Age_group', 'Main_transpor
 
 
 #Write everything to file
+train_data = alldata[:train_idx]
+test_data = alldata[train_idx: test_idx]
+validation_data = alldata[test_idx:]
+
 train_data.to_csv("train.csv")
 test_data.to_csv("test.csv")
 validation_data.to_csv("validation.csv")
