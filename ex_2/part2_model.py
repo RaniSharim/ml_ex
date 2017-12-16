@@ -160,6 +160,11 @@ def main():
     pred = clf.predict(features)
     print "Predicted winner is %s" %(Counter(pred).most_common(1)[0][0])
 
+    print "Parties vote distribution"
+    vote_count = Counter(pred)
+    for party in vote_count:
+        print party + ": " + str((vote_count[party] / 2000.0) * 100.0) + "%"
+
     # Saving prediction to csv
     df = pd.DataFrame(pred)
     df.to_csv("validation_prediction.csv",header=['label'] ,index=False)
@@ -169,7 +174,7 @@ def main():
 
     # printing number of errors
     errors = sum(1 for i, j in zip(target, pred) if i != j)
-    percent_error = float(errors / 2000)*100.0
+    percent_error = float(errors / 2000.0*100.0)
     print "Number of error %d; Error percent: %f" %(errors, percent_error)
 
 if __name__ == '__main__':
