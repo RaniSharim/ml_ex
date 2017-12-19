@@ -123,7 +123,7 @@ def main():
     # classification report
 
     # Generating classification report for Decision Trees
-    clf = tree.DecisionTreeClassifier(min_samples_split=splitter)
+    clf = tree.DecisionTreeClassifier(min_samples_split=5)
     pred = cross_val_predict(clf, features, target, cv=30, n_jobs=-1)
     print "########################   Decision Tree    ############################"
     print(classification_report(target, pred, target_names=train_val_data.label.unique()))
