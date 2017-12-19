@@ -3,7 +3,7 @@ part2 is a data cleansing script handling electionsdata.csv.
 Input: electionsdata.csv from the current folder (script folder).
 Output: 3 raw data csv and 3 csvs prepared for training and predicting
 
-Authors: Lavi.Lazarovitz (065957383) & Rasni Sharim (####)
+Authors: Lavi.Lazarovitz (065957383) & Aharon Sharim (052328523)
 """
 
 import numpy as np

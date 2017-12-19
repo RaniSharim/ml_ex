@@ -11,7 +11,7 @@ Important Note: The process halts when a graph is showing. To compltete the proc
 Important Note: Some of the operation are heavy and use all avilable processors. If the script is executed on a
                 low  CPU machine, the process might fail.
 
-Authors: Lavi.Lazarovitz (065957383) & Rasni Sharim (####)
+Authors: Lavi.Lazarovitz (065957383) & Aharon Sharim (052328523)
 """
 
 import numpy as np
