@@ -75,7 +75,7 @@ def main():
 
 
     clf =  GaussianNB()
-    scores = cross_val_score(clf, features, target,cv=15, n_jobs=-1)
+    scores = cross_val_score(clf, features, target,cv=20, n_jobs=-1)
     print "########################   Naive Bayes    ############################"
     print "avg: %f" %(np.mean(scores))
 
@@ -103,8 +103,8 @@ def main():
     scrs = []
     for nbors in range (3,25):
         clf = KNeighborsClassifier(nbors)
-        scores = cross_val_score(clf, features, target, cv=15, n_jobs=-1)
-        avg = sum(scores) / 15.0
+        scores = cross_val_score(clf, features, target, cv=20, n_jobs=-1)
+        avg = sum(scores) / 20.0
         scrs.append(avg)
         # print "neighbors=%d    average= %f" %(nbors,avg)
     print "########################   KNN    ############################"
