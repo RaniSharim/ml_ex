@@ -1,3 +1,7 @@
+# Exercise 1
+# אהרון שרים, 052328523
+# לביא ליזרוביץ, 065957383
+# using numpy, pandas, sklearn
 import numpy as np
 import pandas as pd
 from sklearn.utils import shuffle
