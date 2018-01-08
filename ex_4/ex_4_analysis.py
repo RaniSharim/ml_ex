@@ -11,10 +11,16 @@ from sklearn.neighbors import NearestNeighbors, KNeighborsClassifier
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples, silhouette_score, accuracy_score
 import matplotlib.cm as cm
+from sklearn.naive_bayes import GaussianNB
+from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 
 def main():
     # ######################################## Data Loading ########################################
     # Loading the processed data from the local folder
+
+    feature_names = pd.read_csv("validation_data_clean.csv", nrows=1).drop(['label'], axis=1).columns
+    # print(feature_names)
+
     train_data = pd.read_csv("train_data_clean.csv", header=0)
     validation_data = pd.read_csv("validation_data_clean.csv", header=0)
 
@@ -95,22 +101,51 @@ def main():
     # plt.title('Accuracy for knn')
     # plt.show()
 
-    knnModel = NearestNeighbors(n_neighbors=5, algorithm='auto').fit(features)
-    distances, indices = knnModel.kneighbors(features)
-    party_knn = {}
+    # knnModel = NearestNeighbors(n_neighbors=5, algorithm='auto').fit(features)
+    # distances, indices = knnModel.kneighbors(features)
+    # party_knn = {}
 
-    for idx in range(0,len(indices)):
-        myIndices = indices[idx]
-        myIdx = myIndices[0]
-        myParty = train_data[['label']].values[myIdx][0]
-        if myParty not in party_knn:
-             party_knn[myParty] = {}
-        for otherIdx in myIndices[1:]:
-            otherParty = train_data[['label']].values[otherIdx][0]
-            if otherParty not in party_knn[myParty]:
-                party_knn[myParty][otherParty] = 0
-            party_knn[myParty][otherParty] = party_knn[myParty][otherParty] + 1
+    # for idx in range(0,len(indices)):
+    #     myIndices = indices[idx]
+    #     myIdx = myIndices[0]
+    #     myParty = train_data[['label']].values[myIdx][0]
+    #     if myParty not in party_knn:
+    #          party_knn[myParty] = {}
+    #     for otherIdx in myIndices[1:]:
+    #         otherParty = train_data[['label']].values[otherIdx][0]
+    #         if otherParty not in party_knn[myParty]:
+    #             party_knn[myParty][otherParty] = 0
+    #         party_knn[myParty][otherParty] = party_knn[myParty][otherParty] + 1
 
-    print(party_knn)
+    # print(party_knn)
+
+
+    gaussianNB =  GaussianNB()
+    # scores = cross_val_score(gaussianNB, features, train_labels,cv=5)
+    # print ("########################   Naive Bayes    ############################")
+    # print ("avg: %f" %(np.mean(scores)))
+
+
+    gaussianFit =  gaussianNB.fit(features, train_labels)
+    # print(gaussianFit.classes_)
+    # print(gaussianFit.class_count_)
+    # print(gaussianFit.class_prior_)
+    # print("Mean:")
+    # print(gaussianNB.theta_)
+    # print("")
+    # print("Var:")
+    # print(gaussianNB.sigma_)
+    # print("Params:")
+    # print(gaussianNB.get_params())
+    for featureIdx in range(0, len(gaussianNB.theta_[0])):
+            print("")
+            print(feature_names[featureIdx])
+            for idx in range(0, len(gaussianFit.classes_)):
+                print(gaussianFit.classes_[idx])
+                print("Mean: "+str(gaussianNB.theta_[idx][featureIdx]))
+                print("Var: "+str(gaussianNB.sigma_[idx][featureIdx]))
+
+        
+
 
 main()
