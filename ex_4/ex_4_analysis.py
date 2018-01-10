@@ -13,6 +13,7 @@ from sklearn.metrics import silhouette_samples, silhouette_score, accuracy_score
 import matplotlib.cm as cm
 from sklearn.naive_bayes import GaussianNB
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
+import math
 
 def main():
     # ######################################## Data Loading ########################################
@@ -55,34 +56,70 @@ def main():
     # plt.ylabel('Silhouette')
     # plt.title('The Silhouette Method showing the optimal k')
     # plt.show()
+  
+    # validation_data['Issue_3'] = validation_data['Issue_3'].map(lambda x: 0)
+    # validation_data['Issue_5'] = validation_data['Issue_5'].map(lambda x: 0)
+    # validation_data['Issue_6'] = validation_data['Issue_6'].map(lambda x: 0)
+  
+    k = 11
+    cluster_counts = {}
+    party_counts = {}
+    kmeanModel = KMeans(n_clusters=k).fit(features)
+    cluster_labels = kmeanModel.fit_predict(features)
+    
+    print(kmeanModel.inertia_)
+    maxDistance = 0
 
-    # k = 11
-    # cluster_counts = {}
-    # party_counts = {}
-    # kmeanModel = KMeans(n_clusters=k).fit(features)
-    # cluster_labels = kmeanModel.fit_predict(features)
-    # for idx in range(0,len(cluster_labels)):
-    #     cluster = str(cluster_labels[idx])
-    #     party = train_data[['label']].values[idx][0]
-        
-    #     if cluster not in cluster_counts:
-    #         cluster_counts[cluster] = {}
+    distances = [[0 for x in range(11)] for y in range(11)] 
 
-    #     if party not in cluster_counts[cluster]:
-    #         cluster_counts[cluster][party] = 0
-        
-    #     cluster_counts[cluster][party] = cluster_counts[cluster][party] + 1
+    for idx in range(0, 11):
+        me = kmeanModel.cluster_centers_[idx]
+        for idx2 in range(0, 11):
+            other = kmeanModel.cluster_centers_[idx2]
+            distance = 0
+            for fIdx in range(1, len(me)):
+                distance = distance + math.pow((me[fIdx] - other[fIdx]),2)
+            distance = math.sqrt(distance)
+            distances[idx][idx2] = distance
+            if distance > maxDistance:
+                maxDistance = distance
+            #print str(distance)+",",
+        #print ""
 
-    #     if party not in party_counts:
-    #         party_counts[party] = {}
-        
-    #     if cluster not in party_counts[party]:
-    #         party_counts[party][cluster] = 0
-        
-    #     party_counts[party][cluster] = party_counts[party][cluster] + 1
+    for idx in range(0, 11):
+        for idx2 in range(0, 11):
+            distances[idx][idx2] = (distances[idx][idx2] - (maxDistance / 2))/(maxDistance / 2)
 
-    # print(cluster_counts)
-    # print(party_counts)
+    for idx in range(0, 11):
+        for idx2 in range(0, 11):
+            if distances[idx][idx2] > 0:
+                print "Far,",
+            else:
+                print "Close,",
+        print ""
+
+    for idx in range(0,len(cluster_labels)):
+        cluster = str(cluster_labels[idx])
+        party = train_data[['label']].values[idx][0]
+        
+        if cluster not in cluster_counts:
+            cluster_counts[cluster] = {}
+
+        if party not in cluster_counts[cluster]:
+            cluster_counts[cluster][party] = 0
+        
+        cluster_counts[cluster][party] = cluster_counts[cluster][party] + 1
+
+        if party not in party_counts:
+            party_counts[party] = {}
+        
+        if cluster not in party_counts[party]:
+            party_counts[party][cluster] = 0
+        
+        party_counts[party][cluster] = party_counts[party][cluster] + 1
+
+    print(cluster_counts)
+    print(party_counts)
 
     # accuracy = []
     # K = range(1,10)
@@ -120,32 +157,36 @@ def main():
     # print(party_knn)
 
 
-    gaussianNB =  GaussianNB()
+    # gaussianNB =  GaussianNB()
     # scores = cross_val_score(gaussianNB, features, train_labels,cv=5)
     # print ("########################   Naive Bayes    ############################")
     # print ("avg: %f" %(np.mean(scores)))
 
 
-    gaussianFit =  gaussianNB.fit(features, train_labels)
-    # print(gaussianFit.classes_)
-    # print(gaussianFit.class_count_)
-    # print(gaussianFit.class_prior_)
-    # print("Mean:")
-    # print(gaussianNB.theta_)
-    # print("")
-    # print("Var:")
-    # print(gaussianNB.sigma_)
-    # print("Params:")
-    # print(gaussianNB.get_params())
-    for featureIdx in range(0, len(gaussianNB.theta_[0])):
-            print("")
-            print(feature_names[featureIdx])
-            for idx in range(0, len(gaussianFit.classes_)):
-                print(gaussianFit.classes_[idx])
-                print("Mean: "+str(gaussianNB.theta_[idx][featureIdx]))
-                print("Var: "+str(gaussianNB.sigma_[idx][featureIdx]))
+    # gaussianFit =  gaussianNB.fit(features, train_labels)
+   
+    # for featureIdx in range(0, len(gaussianNB.theta_[0])):
+    #         print("")
+    #         print(feature_names[featureIdx])
+    #         for idx in range(0, len(gaussianFit.classes_)):
+    #             print(gaussianFit.classes_[idx])
+    #             print("Mean: "+str(gaussianNB.theta_[idx][featureIdx]))
+    #             print("Var: "+str(gaussianNB.sigma_[idx][featureIdx]))
 
-        
 
+    # model = BayesianGaussianMixture(n_components = 7, max_iter=2500)
+    # trained = model.fit(features, train_labels)
+    # print(trained.converged_)
+
+    # #sometimes the model fails to converge on 7 components, try again until it works
+    # while (trained.converged_ != True):
+    #     trained = model.fit(features, train_labels)
+    #     print(trained.converged_)
+
+    # print(trained.covariance_prior_)
+    # print ("")
+    # print ("")
+    # print ("")
+    # print(trained.covariances_)
 
 main()
